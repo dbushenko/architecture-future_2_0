@@ -44,7 +44,7 @@ Terraform will perform the following actions:
                     shell: /bin/bash
                     sudo: ['ALL=(ALL) NOPASSWD:ALL']
                     ssh-authorized-keys:
-                      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPvuTCS0fndd2Ha0q/8zA4o5MLrJTPofvJKo82yDQzMy d.bushenko@gmail.com
+                      - ssh-ed25519 AAAA...................om
                 runcmd:
                   - systemctl restart ssh
                   - usermod -aG sudo dev-user
