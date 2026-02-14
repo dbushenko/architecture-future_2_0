@@ -8,23 +8,23 @@ terraform {
 }
 
 provider "yandex" {
-  zone = "ru-central1-a"
+  zone = var.zone
 }
 
 resource "yandex_compute_disk" "boot-disk-1" {
-  name     = "boot-disk-1"
-  type     = "network-hdd"
-  zone     = "ru-central1-a"
-  size     = "20"
-  image_id = "fd84mnbiarffhtfrhnog"
+  name     = var.disk_name
+  type     = var.disk_type
+  zone     = var.zone
+  size     = var.disk_size
+  image_id = var.image_id
 }
 
 resource "yandex_compute_instance" "vm-1" {
-  name = "terraform1"
+  name = var.vm_name
 
   resources {
-    cores  = 2
-    memory = 2
+    cores  = var.vm_cores
+    memory = var.vm_memory
   }
 
   boot_disk {
@@ -38,12 +38,12 @@ resource "yandex_compute_instance" "vm-1" {
   }
 
   metadata = {
-    user-data = "${file("./userdata.yaml")}"
+    user-data = "#cloud-config\nusers:\n  - name: ${var.ssh_user}\n    groups: [sudo]\n    shell: /bin/bash\n    sudo: ['ALL=(ALL) NOPASSWD:ALL']\n    ssh-authorized-keys:\n      - ${var.ssh_public_key}\nruncmd:\n  - systemctl restart ssh\n  - usermod -aG sudo ${var.ssh_user}"
   }
 }
 
 resource "yandex_vpc_security_group" "security-group-1" {
-  name       = "security-group1"
+  name       = var.security_group_name
   network_id = yandex_vpc_network.network-1.id
   description = "Security group for VM SSH access"
 
@@ -64,20 +64,12 @@ resource "yandex_vpc_security_group" "security-group-1" {
 }
 
 resource "yandex_vpc_network" "network-1" {
-  name = "network1"
+  name = var.network_name
 }
 
 resource "yandex_vpc_subnet" "subnet-1" {
-  name           = "subnet1"
-  zone           = "ru-central1-a"
+  name           = var.subnet_name
+  zone           = var.zone
   network_id     = yandex_vpc_network.network-1.id
-  v4_cidr_blocks = ["192.168.10.0/24"]
-}
-
-output "internal_ip_address_vm_1" {
-  value = yandex_compute_instance.vm-1.network_interface.0.ip_address
-}
-
-output "external_ip_address_vm_1" {
-  value = yandex_compute_instance.vm-1.network_interface.0.nat_ip_address
+  v4_cidr_blocks = [var.cidr_block]
 }

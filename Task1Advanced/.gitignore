@@ -1,0 +1,16 @@
+# Terraform files
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+
+# Module files should not have state
+**/modules/**/terraform.tfstate
+**/modules/**/terraform.tfstate.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
