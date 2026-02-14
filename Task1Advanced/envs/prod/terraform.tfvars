@@ -1,0 +1,11 @@
+vm_name             = "prod-vm"
+vm_cores            = 8
+vm_memory           = 8
+disk_name           = "prod-boot-disk"
+disk_size           = 100
+network_name        = "prod-network"
+subnet_name         = "prod-subnet"
+cidr_block          = "192.168.30.0/24"
+security_group_name = "prod-security-group"
+ssh_user            = "prod-user"
+ssh_public_key      = "ssh-ed25519 AAA...............om"

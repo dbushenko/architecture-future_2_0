@@ -1,0 +1,11 @@
+vm_name             = "dev-vm"
+vm_cores            = 2
+vm_memory           = 2
+disk_name           = "dev-boot-disk"
+disk_size           = 20
+network_name        = "dev-network"
+subnet_name         = "dev-subnet"
+cidr_block          = "192.168.10.0/24"
+security_group_name = "dev-security-group"
+ssh_user            = "dev-user"
+ssh_public_key      = "ssh-ed25519 AAA..............om"

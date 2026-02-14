@@ -1,0 +1,11 @@
+vm_name             = "stage-vm"
+vm_cores            = 4
+vm_memory           = 4
+disk_name           = "stage-boot-disk"
+disk_size           = 40
+network_name        = "stage-network"
+subnet_name         = "stage-subnet"
+cidr_block          = "192.168.20.0/24"
+security_group_name = "stage-security-group"
+ssh_user            = "stage-user"
+ssh_public_key      = "ssh-ed25519 AAA......................om"
