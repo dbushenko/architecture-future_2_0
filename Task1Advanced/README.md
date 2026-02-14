@@ -2,7 +2,7 @@
 
 Создан универсальный модуль Terraform, который можно использовать для разных окружений (dev, stage, prod). Инфраструктура развернута в Yandex Cloud.
 
-!#[00.png](./img/00.png)
+![00.png](./img/00.png)
 
 Реализован модуль vm_module (в папке modules/vm/) со следующими параметрами:
 
@@ -73,11 +73,11 @@ terraform apply
 
 Созданные ресурсы:
 
-![02.png](!./img/02.png)
+![02.png](./img/02.png)
 
 Залогиниться можно с применением указанного в переменных публичного ключа
 
-![01.png](!./img/01.png)
+![01.png](./img/01.png)
 
 
 ## Модуль vm
@@ -140,67 +140,3 @@ terraform apply
 | dev | 2 | 2 | 20 | 192.168.10.0/24 |
 | stage | 4 | 4 | 40 | 192.168.20.0/24 |
 | prod | 8 | 8 | 100 | 192.168.30.0/24 |
-
-## Использование
-
-### Для окружения разработки (dev)
-
-```bash
-cd envs/dev
-terraform init
-terraform plan
-terraform apply
-```
-
-После успешного применения можно получить IP-адрес для подключения по SSH:
-```bash
-terraform output external_ip
-```
-
-### Для окружения тестирования (stage)
-
-```bash
-cd envs/stage
-terraform init
-terraform plan
-terraform apply
-```
-
-После успешного применения можно получить IP-адрес для подключения по SSH:
-```bash
-terraform output external_ip
-```
-
-### Для продуктивного окружения (prod)
-
-```bash
-cd envs/prod
-terraform init
-terraform plan
-terraform apply
-```
-
-После успешного применения можно получить IP-адрес для подключения по SSH:
-```bash
-terraform output external_ip
-```
-
-## Получение выходных значений
-
-После применения конфигурации можно получить все выходные значения:
-```bash
-terraform output
-```
-
-Или конкретное значение:
-```bash
-terraform output external_ip
-```
-
-## Удаление ресурсов
-
-Для удаления ресурсов в конкретном окружении:
-```bash
-cd envs/dev
-terraform destroy
-```
