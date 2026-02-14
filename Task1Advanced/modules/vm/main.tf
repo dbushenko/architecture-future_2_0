@@ -34,10 +34,32 @@ resource "yandex_compute_instance" "vm-1" {
   network_interface {
     subnet_id = yandex_vpc_subnet.subnet-1.id
     nat       = true
+    security_group_ids = [yandex_vpc_security_group.security-group-1.id]
   }
 
   metadata = {
-    ssh-keys = "ubuntu:${file("~/.ssh/id_ed25519.pub")}"
+    user-data = "${file("./userdata.yaml")}"
+  }
+}
+
+resource "yandex_vpc_security_group" "security-group-1" {
+  name       = "security-group1"
+  network_id = yandex_vpc_network.network-1.id
+  description = "Security group for VM SSH access"
+
+  ingress {
+    protocol       = "TCP"
+    description    = "SSH"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    port           = 22
+  }
+
+  egress {
+    protocol       = "ANY"
+    description    = "Allow all egress"
+    v4_cidr_blocks = ["0.0.0.0/0"]
+    from_port      = 1
+    to_port        = 65535
   }
 }
 
