@@ -14,14 +14,13 @@ Jenkins Job скопирует репозиторий с Terraform-конфиг�
 
 ![02](./img/02.png)
 
+[Лог работы Jenkins Job](./job-19-log.txt)
+
 ### Результат работы Terraform
 
 ![03](./img/03.png)
 ![04](./img/04.png)
 
-### Лог работы Jenkins Job
-
-[19](./#19.txt)
 
 ## Подготовка
 
