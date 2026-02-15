@@ -1,0 +1,197 @@
+pipeline {
+    agent { 
+        docker {
+            image 'jenkins-agent-yc:latest'
+            registryUrl ''
+        }
+    }
+
+    environment {
+        GIT_URL = 'https://github.com/dbushenko/architecture-future_2_0'
+        BRANCH = 'task'
+        
+        TF_VAR_vm_name = 'stage-vm'
+        TF_VAR_vm_cores = '2'
+        TF_VAR_vm_memory = '4'
+        TF_VAR_disk_name = 'stage-boot-disk'
+        TF_VAR_disk_size = '30'
+        TF_VAR_network_name = 'stage-network'
+        TF_VAR_subnet_name = 'stage-subnet'
+        TF_VAR_cidr_block = '192.168.20.0/24'
+        TF_VAR_security_group_name = 'stage-security-group'
+        TF_VAR_ssh_user = 'stage-user'
+        TF_VAR_ssh_public_key = ''
+    }
+
+    stages {
+        stage('Validate Environment') {
+            steps {
+                script {
+                    if (!env.TF_VAR_ssh_public_key || env.TF_VAR_ssh_public_key == '') {
+                        error('SSH Public Key is required for VM creation')
+                    }
+                    
+                    script {
+                        def userInput = input(
+                            message: 'Approve deployment to STAGE environment?',
+                            parameters: [
+                                choice(
+                                    name: 'APPROVE_DEPLOY',
+                                    choices: ['yes', 'no'],
+                                    description: 'Do you want to proceed with deployment to STAGE?'
+                                )
+                            ]
+                        )
+                        
+                        if (userInput.APPROVE_DEPLOY != 'yes') {
+                            error('Deployment to STAGE was cancelled by user')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: env.BRANCH]],
+                    userRemoteConfigs: [[url: env.GIT_URL]]
+                ])
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('Task2Advanced/envs/stage') {
+                    sh '''
+                        echo "Terraform version: $(terraform version)"
+                        terraform init
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('Task2Advanced/envs/stage') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('Task2Advanced/envs/stage') {
+                    sh '''terraform plan \
+                      -var="vm_name=${TF_VAR_vm_name}" \
+                      -var="vm_cores=${TF_VAR_vm_cores}" \
+                      -var="vm_memory=${TF_VAR_vm_memory}" \
+                      -var="disk_name=${TF_VAR_disk_name}" \
+                      -var="disk_size=${TF_VAR_disk_size}" \
+                      -var="network_name=${TF_VAR_network_name}" \
+                      -var="subnet_name=${TF_VAR_subnet_name}" \
+                      -var="cidr_block=${TF_VAR_cidr_block}" \
+                      -var="security_group_name=${TF_VAR_security_group_name}" \
+                      -var="ssh_user=${TF_VAR_ssh_user}" \
+                      -var="ssh_public_key=${TF_VAR_ssh_public_key}" \
+                      -out=tfplan -input=false'''
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                script {
+                    def userInput = input(
+                        message: 'Apply Terraform configuration to STAGE?',
+                        parameters: [
+                            choice(
+                                name: 'APPLY_CHOICE',
+                                choices: ['yes', 'no'],
+                                description: 'Do you want to apply the Terraform plan to STAGE?'
+                            )
+                        ]
+                    )
+                    
+                    dir('Task2Advanced/envs/stage') {
+                        sh '''terraform apply -auto-approve -input=false tfplan'''
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { params.RUN_DESTROY == true }
+            }
+            steps {
+                script {
+                    def userInput = input(
+                        message: 'Destroy STAGE environment resources?',
+                        parameters: [
+                            choice(
+                                name: 'DESTROY_CHOICE',
+                                choices: ['yes', 'no'],
+                                description: 'Do you want to destroy STAGE environment resources? This action cannot be undone!'
+                            )
+                        ]
+                    )
+                    
+                    if (userInput.DESTROY_CHOICE == 'yes') {
+                        dir('Task2Advanced/envs/stage') {
+                            sh '''terraform destroy \
+                              -var="vm_name=${TF_VAR_vm_name}" \
+                              -var="vm_cores=${TF_VAR_vm_cores}" \
+                              -var="vm_memory=${TF_VAR_vm_memory}" \
+                              -var="disk_name=${TF_VAR_disk_name}" \
+                              -var="disk_size=${TF_VAR_disk_size}" \
+                              -var="network_name=${TF_VAR_network_name}" \
+                              -var="subnet_name=${TF_VAR_subnet_name}" \
+                              -var="cidr_block=${TF_VAR_cidr_block}" \
+                              -var="security_group_name=${TF_VAR_security_group_name}" \
+                              -var="ssh_user=${TF_VAR_ssh_user}" \
+                              -var="ssh_public_key=${TF_VAR_ssh_public_key}" \
+                              -auto-approve -input=false'''
+                        }
+                    } else {
+                        error('Terraform destroy for STAGE was cancelled by user')
+                    }
+                }
+            }
+        }
+
+        stage('Save Outputs') {
+            steps {
+                dir('Task2Advanced/envs/stage') {
+                    sh '''
+                        if [ -f terraform.tfstate ]; then
+                            terraform output -json > outputs.json
+                            echo "Outputs saved to outputs.json"
+                        fi
+                    '''
+                }
+                archiveArtifacts artifacts: 'Task2Advanced/envs/stage/outputs.json', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                dir('Task2Advanced/envs/stage') {
+                    sh '''
+                        rm -f tfplan 2>/dev/null || true
+                        rm -rf .terraform/ 2>/dev/null || true
+                    '''
+                }
+            }
+        }
+        success {
+            echo 'Stage pipeline completed successfully!'
+        }
+        failure {
+            echo 'Stage pipeline failed!'
+        }
+    }
+}

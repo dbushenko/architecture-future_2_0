@@ -1,0 +1,195 @@
+pipeline {
+    agent { 
+        docker {
+            image 'jenkins-agent-yc:latest'
+            registryUrl ''
+        }
+    }
+
+    environment {
+        GIT_URL = 'https://github.com/dbushenko/architecture-future_2_0'
+        BRANCH = 'task'
+        
+        // Значения по умолчанию для переменных Terraform
+        TF_VAR_vm_name = 'dev-vm'
+        TF_VAR_vm_cores = '2'
+        TF_VAR_vm_memory = '2'
+        TF_VAR_disk_name = 'dev-boot-disk'
+        TF_VAR_disk_size = '20'
+        TF_VAR_network_name = 'dev-network'
+        TF_VAR_subnet_name = 'dev-subnet'
+        TF_VAR_cidr_block = '192.168.10.0/24'
+        TF_VAR_security_group_name = 'dev-security-group'
+        TF_VAR_ssh_user = 'dev-user'
+        TF_VAR_ssh_public_key = 'ssh-ed25519 AA...........om'
+    }
+
+    stages {
+        stage('Validate Environment') {
+            steps {
+                script {
+                    if (!env.TF_VAR_ssh_public_key || env.TF_VAR_ssh_public_key == '') {
+                        error('SSH Public Key is required for VM creation')
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: env.BRANCH]],
+                    userRemoteConfigs: [[url: env.GIT_URL]]
+                ])
+            }
+        }
+
+// Чутка debug-инфы, чтоб было понятно, что происходит, если ничего не работает
+        stage('Debug Terraform') {
+            steps {
+                dir('Task2Advanced/envs/dev') {
+                    sh '''
+                        echo "Current user: $(whoami)"
+                        echo "Home directory: $HOME"
+                        echo "PATH: $PATH"
+                        echo "Looking for terraform in PATH..."
+                        which terraform || echo "terraform not found in PATH"
+                        echo "Checking terraform in /home/jenkins/bin..."
+                        ls -la /home/jenkins/bin/terraform || echo "terraform not found in /home/jenkins/bin"
+                        echo "Checking terraform permissions..."
+                        stat /home/jenkins/bin/terraform || echo "Could not stat terraform"
+                        echo "Attempting to run terraform version with full path..."
+                        /home/jenkins/bin/terraform version || echo "Failed to run terraform with full path"
+                        echo "Checking .terraformrc file..."
+                        cat $HOME/.terraformrc || echo ".terraformrc not found"
+                        echo "Checking if .terraformrc is in the right place for terraform..."
+                        ls -la $HOME/.terraformrc || echo ".terraformrc not found in home directory"
+                        echo "Trying to find any .terraformrc files..."
+                        find / -name ".terraformrc" 2>/dev/null || echo "No .terraformrc files found"
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('Task2Advanced/envs/dev') {
+                    sh '''
+                        echo "Terraform version: $(terraform version)"
+                        terraform init
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('Task2Advanced/envs/dev') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('Task2Advanced/envs/dev') {
+                    sh '''terraform plan \
+                      -var="vm_name=${TF_VAR_vm_name}" \
+                      -var="vm_cores=${TF_VAR_vm_cores}" \
+                      -var="vm_memory=${TF_VAR_vm_memory}" \
+                      -var="disk_name=${TF_VAR_disk_name}" \
+                      -var="disk_size=${TF_VAR_disk_size}" \
+                      -var="network_name=${TF_VAR_network_name}" \
+                      -var="subnet_name=${TF_VAR_subnet_name}" \
+                      -var="cidr_block=${TF_VAR_cidr_block}" \
+                      -var="security_group_name=${TF_VAR_security_group_name}" \
+                      -var="ssh_user=${TF_VAR_ssh_user}" \
+                      -var="ssh_public_key=${TF_VAR_ssh_public_key}" \
+                      -out=tfplan -input=false'''
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('Task2Advanced/envs/dev') {
+                    sh '''terraform apply -auto-approve -input=false tfplan'''
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { params.RUN_DESTROY == true }
+            }
+            steps {
+                script {
+                    def userInput = input(
+                        message: 'Destroy Terraform resources?',
+                        parameters: [
+                            choice(
+                                name: 'DESTROY_CHOICE',
+                                choices: ['yes', 'no'],
+                                description: 'Do you want to destroy all Terraform resources? This action cannot be undone!'
+                            )
+                        ]
+                    )
+
+                    if (userInput.DESTROY_CHOICE == 'yes') {
+                        dir('Task2Advanced/envs/dev') {
+                            sh '''terraform destroy \
+                              -var="vm_name=${TF_VAR_vm_name}" \
+                              -var="vm_cores=${TF_VAR_vm_cores}" \
+                              -var="vm_memory=${TF_VAR_vm_memory}" \
+                              -var="disk_name=${TF_VAR_disk_name}" \
+                              -var="disk_size=${TF_VAR_disk_size}" \
+                              -var="network_name=${TF_VAR_network_name}" \
+                              -var="subnet_name=${TF_VAR_subnet_name}" \
+                              -var="cidr_block=${TF_VAR_cidr_block}" \
+                              -var="security_group_name=${TF_VAR_security_group_name}" \
+                              -var="ssh_user=${TF_VAR_ssh_user}" \
+                              -var="ssh_public_key=${TF_VAR_ssh_public_key}" \
+                              -auto-approve -input=false'''
+                        }
+                    } else {
+                        error('Terraform destroy was cancelled by user')
+                    }
+                }
+            }
+        }
+
+        stage('Save Outputs') {
+            steps {
+                dir('Task2Advanced/envs/dev') {
+                    sh '''
+                        if [ -f terraform.tfstate ]; then
+                            terraform output -json > outputs.json
+                            echo "Outputs saved to outputs.json"
+                        fi
+                    '''
+                }
+                archiveArtifacts artifacts: 'Task2Advanced/envs/dev/outputs.json', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                dir('Task2Advanced/envs/dev') {
+                    sh '''
+                        rm -f tfplan 2>/dev/null || true
+                        rm -rf .terraform/ 2>/dev/null || true
+                    '''
+                }
+            }
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}
