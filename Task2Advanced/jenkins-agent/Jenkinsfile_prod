@@ -1,0 +1,235 @@
+pipeline {
+    agent { 
+        docker {
+            image 'jenkins-agent-yc:latest'
+            registryUrl ''
+        }
+    }
+
+    environment {
+        GIT_URL = 'https://github.com/dbushenko/architecture-future_2_0'
+        BRANCH = 'task'
+        
+        // Значения по умолчанию для переменных Terraform
+        TF_VAR_vm_name = 'prod-vm'
+        TF_VAR_vm_cores = '4'
+        TF_VAR_vm_memory = '8'
+        TF_VAR_disk_name = 'prod-boot-disk'
+        TF_VAR_disk_size = '50'
+        TF_VAR_network_name = 'prod-network'
+        TF_VAR_subnet_name = 'prod-subnet'
+        TF_VAR_cidr_block = '192.168.30.0/24'
+        TF_VAR_security_group_name = 'prod-security-group'
+        TF_VAR_ssh_user = 'prod-user'
+        TF_VAR_ssh_public_key = ''
+    }
+
+    stages {
+        stage('Validate Environment') {
+            steps {
+                script {
+                    if (!env.TF_VAR_ssh_public_key || env.TF_VAR_ssh_public_key == '') {
+                        error('SSH Public Key is required for VM creation')
+                    }
+                    
+                    script {
+                        def userInput = input(
+                            message: 'CRITICAL: Approve deployment to PRODUCTION environment?',
+                            parameters: [
+                                choice(
+                                    name: 'APPROVE_PROD',
+                                    choices: ['yes', 'no'],
+                                    description: 'CRITICAL: Do you really want to proceed with deployment to PRODUCTION? This is irreversible!'
+                                )
+                            ]
+                        )
+                        
+                        if (userInput.APPROVE_PROD != 'yes') {
+                            error('Deployment to PRODUCTION was cancelled by user')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: env.BRANCH]],
+                    userRemoteConfigs: [[url: env.GIT_URL]]
+                ])
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                dir('Task2Advanced/envs/prod') {
+                    sh '''
+                        # Проверка конфигурации Terraform на наличие уязвимостей
+                        if command -v tfsec &> /dev/null; then
+                            tfsec .
+                        else
+                            echo "tfsec not found, skipping security scan"
+                        fi
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('Task2Advanced/envs/prod') {
+                    sh '''
+                        echo "Terraform version: $(terraform version)"
+                        terraform init
+                    '''
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('Task2Advanced/envs/prod') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('Task2Advanced/envs/prod') {
+                    sh '''terraform plan \
+                      -var="vm_name=${TF_VAR_vm_name}" \
+                      -var="vm_cores=${TF_VAR_vm_cores}" \
+                      -var="vm_memory=${TF_VAR_vm_memory}" \
+                      -var="disk_name=${TF_VAR_disk_name}" \
+                      -var="disk_size=${TF_VAR_disk_size}" \
+                      -var="network_name=${TF_VAR_network_name}" \
+                      -var="subnet_name=${TF_VAR_subnet_name}" \
+                      -var="cidr_block=${TF_VAR_cidr_block}" \
+                      -var="security_group_name=${TF_VAR_security_group_name}" \
+                      -var="ssh_user=${TF_VAR_ssh_user}" \
+                      -var="ssh_public_key=${TF_VAR_ssh_public_key}" \
+                      -out=tfplan -input=false'''
+                }
+            }
+        }
+
+        stage('Manual Approval for Production') {
+            steps {
+                script {
+                    def userInput = input(
+                        message: 'CRITICAL: FINAL APPROVAL - Apply Terraform configuration to PRODUCTION?',
+                        ok: 'APPLY TO PROD',
+                        parameters: [
+                            text(
+                                name: 'CONFIRMATION_CODE',
+                                defaultValue: '',
+                                description: 'Enter the confirmation code "PROD-DEPLOY-${BUILD_NUMBER}" to proceed:'
+                            )
+                        ]
+                    )
+                    
+                    def expectedCode = "PROD-DEPLOY-${env.BUILD_NUMBER}"
+                    if (userInput.CONFIRMATION_CODE != expectedCode) {
+                        error('Invalid confirmation code. Deployment to PRODUCTION cancelled.')
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                dir('Task2Advanced/envs/prod') {
+                    sh '''terraform apply -auto-approve -input=false tfplan'''
+                }
+            }
+        }
+
+        stage('Terraform Destroy') {
+            when {
+                expression { params.RUN_DESTROY == true }
+            }
+            steps {
+                script {
+                    def userInput = input(
+                        message: 'CRITICAL: Destroy PRODUCTION environment resources?',
+                        ok: 'DESTROY PROD',
+                        parameters: [
+                            text(
+                                name: 'CONFIRMATION_DESTROY',
+                                defaultValue: '',
+                                description: 'Enter the confirmation code "DESTROY-PROD-${BUILD_NUMBER}" to proceed (THIS CANNOT BE UNDONE):'
+                            )
+                        ]
+                    )
+
+                    def expectedCode = "DESTROY-PROD-${env.BUILD_NUMBER}"
+                    if (userInput.CONFIRMATION_DESTROY != expectedCode) {
+                        error('Invalid confirmation code. Destruction of PRODUCTION cancelled.')
+                    }
+
+                    dir('Task2Advanced/envs/prod') {
+                        sh '''terraform destroy \
+                          -var="vm_name=${TF_VAR_vm_name}" \
+                          -var="vm_cores=${TF_VAR_vm_cores}" \
+                          -var="vm_memory=${TF_VAR_vm_memory}" \
+                          -var="disk_name=${TF_VAR_disk_name}" \
+                          -var="disk_size=${TF_VAR_disk_size}" \
+                          -var="network_name=${TF_VAR_network_name}" \
+                          -var="subnet_name=${TF_VAR_subnet_name}" \
+                          -var="cidr_block=${TF_VAR_cidr_block}" \
+                          -var="security_group_name=${TF_VAR_security_group_name}" \
+                          -var="ssh_user=${TF_VAR_ssh_user}" \
+                          -var="ssh_public_key=${TF_VAR_ssh_public_key}" \
+                          -auto-approve -input=false'''
+                    }
+                }
+            }
+        }
+
+        stage('Save Outputs') {
+            steps {
+                dir('Task2Advanced/envs/prod') {
+                    sh '''
+                        if [ -f terraform.tfstate ]; then
+                            terraform output -json > outputs.json
+                            echo "Outputs saved to outputs.json"
+                        fi
+                    '''
+                }
+                archiveArtifacts artifacts: 'Task2Advanced/envs/prod/outputs.json', fingerprint: true
+            }
+        }
+    }
+
+    post {
+        always {
+            script {
+                dir('Task2Advanced/envs/prod') {
+                    sh '''
+                        rm -f tfplan 2>/dev/null || true
+                        rm -rf .terraform/ 2>/dev/null || true
+                    '''
+                }
+            }
+        }
+        success {
+            echo 'Production pipeline completed successfully!'
+            script {
+                sh '''
+                    echo "Production deployment completed. Build: ${BUILD_NUMBER}, Job: ${JOB_NAME}"
+                '''
+            }
+        }
+        failure {
+            echo 'Production pipeline failed!'
+            script {
+                sh '''
+                    echo "Production deployment failed. Build: ${BUILD_NUMBER}, Job: ${JOB_NAME}"
+                '''
+            }
+        }
+    }
+}

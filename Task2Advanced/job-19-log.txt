@@ -1,0 +1,444 @@
+Started by user admin
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on Jenkins in /var/lib/jenkins/workspace/Dev
+[Pipeline] {
+[Pipeline] isUnix
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] sh
++ docker inspect -f . jenkins-agent-yc:latest
+.
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] withDockerContainer
+Jenkins does not seem to be running inside a container
+$ docker run -t -d -u 124:132 -w /var/lib/jenkins/workspace/Dev -v /var/lib/jenkins/workspace/Dev:/var/lib/jenkins/workspace/Dev:rw,z -v /var/lib/jenkins/workspace/Dev@tmp:/var/lib/jenkins/workspace/Dev@tmp:rw,z -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** -e ******** jenkins-agent-yc:latest cat
+$ docker top e0d0cec89ba390c7c78294e87da4c7f2e1450fe9a4918b3d6c5f5dbcc187e48d -eo pid,comm
+[Pipeline] {
+[Pipeline] withEnv
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Validate Environment)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Checkout)
+[Pipeline] checkout
+The recommended git tool is: NONE
+No credentials specified
+Warning: JENKINS-30600: special launcher org.jenkinsci.plugins.docker.workflow.WithContainerStep$Decorator$1@386892b6; decorates hudson.Launcher$LocalLauncher@36af7bcb will be ignored (a typical symptom is the Git executable not being run inside a designated container)
+ > git rev-parse --resolve-git-dir /var/lib/jenkins/workspace/Dev/.git # timeout=10
+Fetching changes from the remote Git repository
+ > git config remote.origin.url https://github.com/dbushenko/architecture-future_2_0 # timeout=10
+Fetching upstream changes from https://github.com/dbushenko/architecture-future_2_0
+ > git --version # timeout=10
+ > git --version # 'git version 2.50.0'
+ > git fetch --tags --force --progress -- https://github.com/dbushenko/architecture-future_2_0 +refs/heads/*:refs/remotes/origin/* # timeout=10
+ > git rev-parse origin/task^{commit} # timeout=10
+Checking out Revision 49b2e06999b7544d9ef2d3e48ee8826f7f3c8ae1 (origin/task)
+ > git config core.sparsecheckout # timeout=10
+ > git checkout -f 49b2e06999b7544d9ef2d3e48ee8826f7f3c8ae1 # timeout=10
+Commit message: "Working on task 2"
+ > git rev-list --no-walk 49b2e06999b7544d9ef2d3e48ee8826f7f3c8ae1 # timeout=10
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Debug Terraform)
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ whoami
++ echo Current user: jenkins
+Current user: jenkins
++ echo Home directory: /home/jenkins
+Home directory: /home/jenkins
++ echo PATH: /home/jenkins/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH: /home/jenkins/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++ echo Looking for terraform in PATH...
+Looking for terraform in PATH...
++ which terraform
+/home/jenkins/bin/terraform
++ echo Checking terraform in /home/jenkins/bin...
+Checking terraform in /home/jenkins/bin...
++ ls -la /home/jenkins/bin/terraform
+-rwxr-xr-x 1 jenkins jenkins 100552888 Feb 11 14:21 /home/jenkins/bin/terraform
++ echo Checking terraform permissions...
+Checking terraform permissions...
++ stat /home/jenkins/bin/terraform
+  File: /home/jenkins/bin/terraform
+  Size: 100552888 	Blocks: 196408     IO Block: 4096   regular file
+Device: 0,83	Inode: 232         Links: 1
+Access: (0755/-rwxr-xr-x)  Uid: (  124/ jenkins)   Gid: (  132/ jenkins)
+Access: 2026-02-11 14:21:49.000000000 +0000
+Modify: 2026-02-11 14:21:49.000000000 +0000
+Change: 2026-02-14 10:56:50.092032023 +0000
+ Birth: 2026-02-14 10:56:49.940446192 +0000
++ echo Attempting to run terraform version with full path...
+Attempting to run terraform version with full path...
++ /home/jenkins/bin/terraform version
+Terraform v1.14.5
+on linux_amd64
++ provider registry.terraform.io/yandex-cloud/yandex v0.186.0
++ echo Checking .terraformrc file...
+Checking .terraformrc file...
++ cat /home/jenkins/.terraformrc
+provider_installation {
+  network_mirror {
+    url = "https://terraform-mirror.yandexcloud.net/"
+    include = ["registry.terraform.io/*/*"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/*/*"]
+  }
+}
++ echo Checking if .terraformrc is in the right place for terraform...
+Checking if .terraformrc is in the right place for terraform...
++ ls -la /home/jenkins/.terraformrc
+-rw-r--r-- 1 jenkins jenkins 206 Feb 14 10:56 /home/jenkins/.terraformrc
++ echo Trying to find any .terraformrc files...
+Trying to find any .terraformrc files...
++ find / -name .terraformrc
+/home/jenkins/.terraformrc
++ echo No .terraformrc files found
+No .terraformrc files found
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Terraform Init)
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ terraform version
++ echo Terraform version: Terraform v1.14.5
+on linux_amd64
++ provider registry.terraform.io/yandex-cloud/yandex v0.186.0
+Terraform version: Terraform v1.14.5
+on linux_amd64
++ provider registry.terraform.io/yandex-cloud/yandex v0.186.0
++ terraform init
+[0m[1mInitializing the backend...[0m
+[0m[1mInitializing modules...[0m
+- vm in ../../modules/vm
+[0m[1mInitializing provider plugins...[0m
+- Reusing previous version of yandex-cloud/yandex from the dependency lock file
+- Installing yandex-cloud/yandex v0.186.0...
+- Installed yandex-cloud/yandex v0.186.0 (unauthenticated)
+
+[0m[1m[32mTerraform has been successfully initialized![0m[32m[0m
+[0m[32m
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.[0m
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Terraform Validate)
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ terraform validate
+[32m[1mSuccess![0m The configuration is valid.
+[0m
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Terraform Plan)
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ terraform plan -var=vm_name=dev-vm -var=vm_cores=2 -var=vm_memory=2 -var=disk_name=dev-boot-disk -var=disk_size=20 -var=network_name=dev-network -var=subnet_name=dev-subnet -var=cidr_block=192.168.10.0/24 -var=security_group_name=dev-security-group -var=ssh_user=dev-user -var=ssh_public_key=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPvuTCS0fndd2Ha0q/8zA4o5MLrJTPofvJKo82yDQzMy d.bushenko@gmail.com -out=tfplan -input=false
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+
+Terraform will perform the following actions:
+
+[1m  # module.vm.yandex_compute_disk.boot-disk-1[0m will be created
+[0m  [32m+[0m[0m resource "yandex_compute_disk" "boot-disk-1" {
+      [32m+[0m[0m block_size  = 4096
+      [32m+[0m[0m created_at  = (known after apply)
+      [32m+[0m[0m folder_id   = (known after apply)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m image_id    = "fd84mnbiarffhtfrhnog"
+      [32m+[0m[0m name        = "dev-boot-disk"
+      [32m+[0m[0m product_ids = (known after apply)
+      [32m+[0m[0m size        = 20
+      [32m+[0m[0m status      = (known after apply)
+      [32m+[0m[0m type        = "network-hdd"
+      [32m+[0m[0m zone        = "ru-central1-a"
+
+      [32m+[0m[0m disk_placement_policy (known after apply)
+
+      [32m+[0m[0m hardware_generation (known after apply)
+    }
+
+[1m  # module.vm.yandex_compute_instance.vm-1[0m will be created
+[0m  [32m+[0m[0m resource "yandex_compute_instance" "vm-1" {
+      [32m+[0m[0m created_at                = (known after apply)
+      [32m+[0m[0m folder_id                 = (known after apply)
+      [32m+[0m[0m fqdn                      = (known after apply)
+      [32m+[0m[0m gpu_cluster_id            = (known after apply)
+      [32m+[0m[0m hardware_generation       = (known after apply)
+      [32m+[0m[0m hostname                  = (known after apply)
+      [32m+[0m[0m id                        = (known after apply)
+      [32m+[0m[0m maintenance_grace_period  = (known after apply)
+      [32m+[0m[0m maintenance_policy        = (known after apply)
+      [32m+[0m[0m metadata                  = {
+          [32m+[0m[0m "user-data" = <<-EOT
+                #cloud-config
+                users:
+                  - name: dev-user
+                    groups: [sudo]
+                    shell: /bin/bash
+                    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+                    ssh-authorized-keys:
+                      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPvuTCS0fndd2Ha0q/8zA4o5MLrJTPofvJKo82yDQzMy d.bushenko@gmail.com
+                runcmd:
+                  - systemctl restart ssh
+                  - usermod -aG sudo dev-user
+            EOT
+        }
+      [32m+[0m[0m name                      = "dev-vm"
+      [32m+[0m[0m network_acceleration_type = "standard"
+      [32m+[0m[0m platform_id               = "standard-v1"
+      [32m+[0m[0m status                    = (known after apply)
+      [32m+[0m[0m zone                      = (known after apply)
+
+      [32m+[0m[0m boot_disk {
+          [32m+[0m[0m auto_delete = true
+          [32m+[0m[0m device_name = (known after apply)
+          [32m+[0m[0m disk_id     = (known after apply)
+          [32m+[0m[0m mode        = (known after apply)
+
+          [32m+[0m[0m initialize_params (known after apply)
+        }
+
+      [32m+[0m[0m metadata_options (known after apply)
+
+      [32m+[0m[0m network_interface {
+          [32m+[0m[0m index              = (known after apply)
+          [32m+[0m[0m ip_address         = (known after apply)
+          [32m+[0m[0m ipv4               = true
+          [32m+[0m[0m ipv6               = (known after apply)
+          [32m+[0m[0m ipv6_address       = (known after apply)
+          [32m+[0m[0m mac_address        = (known after apply)
+          [32m+[0m[0m nat                = true
+          [32m+[0m[0m nat_ip_address     = (known after apply)
+          [32m+[0m[0m nat_ip_version     = (known after apply)
+          [32m+[0m[0m security_group_ids = (known after apply)
+          [32m+[0m[0m subnet_id          = (known after apply)
+        }
+
+      [32m+[0m[0m placement_policy (known after apply)
+
+      [32m+[0m[0m resources {
+          [32m+[0m[0m core_fraction = 100
+          [32m+[0m[0m cores         = 2
+          [32m+[0m[0m memory        = 2
+        }
+
+      [32m+[0m[0m scheduling_policy (known after apply)
+    }
+
+[1m  # module.vm.yandex_vpc_network.network-1[0m will be created
+[0m  [32m+[0m[0m resource "yandex_vpc_network" "network-1" {
+      [32m+[0m[0m created_at                = (known after apply)
+      [32m+[0m[0m default_security_group_id = (known after apply)
+      [32m+[0m[0m folder_id                 = (known after apply)
+      [32m+[0m[0m id                        = (known after apply)
+      [32m+[0m[0m labels                    = (known after apply)
+      [32m+[0m[0m name                      = "dev-network"
+      [32m+[0m[0m subnet_ids                = (known after apply)
+    }
+
+[1m  # module.vm.yandex_vpc_security_group.security-group-1[0m will be created
+[0m  [32m+[0m[0m resource "yandex_vpc_security_group" "security-group-1" {
+      [32m+[0m[0m created_at  = (known after apply)
+      [32m+[0m[0m description = "Security group for VM SSH access"
+      [32m+[0m[0m folder_id   = (known after apply)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m labels      = (known after apply)
+      [32m+[0m[0m name        = "dev-security-group"
+      [32m+[0m[0m network_id  = (known after apply)
+      [32m+[0m[0m status      = (known after apply)
+
+      [32m+[0m[0m egress {
+          [32m+[0m[0m description       = "Allow all egress"
+          [32m+[0m[0m from_port         = 1
+          [32m+[0m[0m id                = (known after apply)
+          [32m+[0m[0m labels            = (known after apply)
+          [32m+[0m[0m port              = -1
+          [32m+[0m[0m protocol          = "ANY"
+          [32m+[0m[0m to_port           = 65535
+          [32m+[0m[0m v4_cidr_blocks    = [
+              [32m+[0m[0m "0.0.0.0/0",
+            ]
+          [32m+[0m[0m v6_cidr_blocks    = []
+            [90m# (2 unchanged attributes hidden)[0m[0m
+        }
+
+      [32m+[0m[0m ingress {
+          [32m+[0m[0m description       = "SSH"
+          [32m+[0m[0m from_port         = -1
+          [32m+[0m[0m id                = (known after apply)
+          [32m+[0m[0m labels            = (known after apply)
+          [32m+[0m[0m port              = 22
+          [32m+[0m[0m protocol          = "TCP"
+          [32m+[0m[0m to_port           = -1
+          [32m+[0m[0m v4_cidr_blocks    = [
+              [32m+[0m[0m "0.0.0.0/0",
+            ]
+          [32m+[0m[0m v6_cidr_blocks    = []
+            [90m# (2 unchanged attributes hidden)[0m[0m
+        }
+    }
+
+[1m  # module.vm.yandex_vpc_subnet.subnet-1[0m will be created
+[0m  [32m+[0m[0m resource "yandex_vpc_subnet" "subnet-1" {
+      [32m+[0m[0m created_at     = (known after apply)
+      [32m+[0m[0m folder_id      = (known after apply)
+      [32m+[0m[0m id             = (known after apply)
+      [32m+[0m[0m labels         = (known after apply)
+      [32m+[0m[0m name           = "dev-subnet"
+      [32m+[0m[0m network_id     = (known after apply)
+      [32m+[0m[0m v4_cidr_blocks = [
+          [32m+[0m[0m "192.168.10.0/24",
+        ]
+      [32m+[0m[0m v6_cidr_blocks = (known after apply)
+      [32m+[0m[0m zone           = "ru-central1-a"
+    }
+
+[1mPlan:[0m [0m5 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  [32m+[0m[0m disk_id     = (known after apply)
+  [32m+[0m[0m external_ip = (known after apply)
+  [32m+[0m[0m internal_ip = (known after apply)
+  [32m+[0m[0m network_id  = (known after apply)
+  [32m+[0m[0m subnet_id   = (known after apply)
+  [32m+[0m[0m vm_id       = (known after apply)
+  [32m+[0m[0m vm_name     = "dev-vm"
+[90m
+─────────────────────────────────────────────────────────────────────────────[0m
+
+Saved the plan to: tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "tfplan"
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Terraform Apply)
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ terraform apply -auto-approve -input=false tfplan
+[0m[1mmodule.vm.yandex_vpc_network.network-1: Creating...[0m[0m
+[0m[1mmodule.vm.yandex_compute_disk.boot-disk-1: Creating...[0m[0m
+[0m[1mmodule.vm.yandex_vpc_network.network-1: Creation complete after 3s [id=enp5b0p5oqsp89ckq1j9][0m
+[0m[1mmodule.vm.yandex_vpc_subnet.subnet-1: Creating...[0m[0m
+[0m[1mmodule.vm.yandex_vpc_security_group.security-group-1: Creating...[0m[0m
+[0m[1mmodule.vm.yandex_vpc_subnet.subnet-1: Creation complete after 0s [id=e9brrndujnbc0qvmi1uk][0m
+[0m[1mmodule.vm.yandex_vpc_security_group.security-group-1: Creation complete after 2s [id=enpfq3651r76nj1vv1md][0m
+[0m[1mmodule.vm.yandex_compute_disk.boot-disk-1: Creation complete after 9s [id=fhmrotomh28scmduasef][0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Creating...[0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [00m10s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [00m20s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [00m30s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [00m40s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [00m50s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [01m00s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [01m10s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [01m20s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Still creating... [01m30s elapsed][0m[0m
+[0m[1mmodule.vm.yandex_compute_instance.vm-1: Creation complete after 1m37s [id=fhmg70t23uf2h669867h][0m
+[0m[1m[32m
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.[0m
+[0m[1m[32m
+Outputs:
+
+[0mdisk_id = "fhmrotomh28scmduasef"
+external_ip = "93.77.190.211"
+internal_ip = "192.168.10.21"
+network_id = "enp5b0p5oqsp89ckq1j9"
+subnet_id = "e9brrndujnbc0qvmi1uk"
+vm_id = "fhmg70t23uf2h669867h"
+vm_name = "dev-vm"
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Terraform Destroy)
+Stage "Terraform Destroy" skipped due to when conditional
+[Pipeline] getContext
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Save Outputs)
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ [ -f terraform.tfstate ]
++ terraform output -json
++ echo Outputs saved to outputs.json
+Outputs saved to outputs.json
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] archiveArtifacts
+Archiving artifacts
+Recording fingerprints
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] stage
+[Pipeline] { (Declarative: Post Actions)
+[Pipeline] script
+[Pipeline] {
+[Pipeline] dir
+Running in /var/lib/jenkins/workspace/Dev/Task2Advanced/envs/dev
+[Pipeline] {
+[Pipeline] sh
++ rm -f tfplan
++ rm -rf .terraform/
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // script
+[Pipeline] echo
+Pipeline completed successfully!
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+$ docker stop --time=1 e0d0cec89ba390c7c78294e87da4c7f2e1450fe9a4918b3d6c5f5dbcc187e48d
+$ docker rm -f --volumes e0d0cec89ba390c7c78294e87da4c7f2e1450fe9a4918b3d6c5f5dbcc187e48d
+[Pipeline] // withDockerContainer
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
